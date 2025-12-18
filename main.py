@@ -1,6 +1,5 @@
 #  MIT License
 #  Copyright (c) 2019-present Dan
-#  https://github.com/delivrance
 
 import os
 import asyncio
@@ -39,25 +38,21 @@ PLUGINS = dict(root="plugins")
 
 bot = Client(
     name="mrwolf_bot",
-    api_id=int(os.environ["API_ID"]),
-    api_hash=os.environ["API_HASH"],
-    bot_token=os.environ["BOT_TOKEN"],
+    api_id=Config.API_ID,
+    api_hash=Config.API_HASH,
+    bot_token=Config.BOT_TOKEN,
     plugins=PLUGINS,
     workers=50,
     sleep_threshold=20,
 )
 
-# ================= RENDER HEALTH SERVER =================
+# ================= HEALTH SERVER =================
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Bot is running")
-
-    def do_HEAD(self):
-        self.send_response(200)
-        self.end_headers()
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
@@ -72,9 +67,8 @@ async def main():
 
     await bot.start()
     me = await bot.get_me()
-    LOGGER.info(f"<--- @{me.username} Started Successfully --->")
+    LOGGER.info(f"@{me.username} started successfully")
 
-    # keep alive forever
     await asyncio.Event().wait()
 
 # ================= RUN =================
