@@ -1,8 +1,6 @@
 #  MIT License
-#
 #  Copyright (c) 2019-present Dan
 #  https://github.com/delivrance
-#
 
 import os
 import asyncio
@@ -36,16 +34,15 @@ AUTH_USERS = [
 ]
 
 PREFIXES = ["/", "~", "?", "!"]
-
 PLUGINS = dict(root="plugins")
 
 # ---------------- BOT CLIENT ---------------- #
 
 bot = Client(
-    name="MRWOLF EXTRACTOR",
-    bot_token=os.environ.get("BOT_TOKEN"),
-    api_id=int(os.environ.get("API_ID")),
-    api_hash=os.environ.get("API_HASH"),
+    name="mrwolf_bot",          # ✅ NO SPACES, FRESH SESSION
+    bot_token=os.environ["BOT_TOKEN"],
+    api_id=int(os.environ["API_ID"]),
+    api_hash=os.environ["API_HASH"],
     plugins=PLUGINS,
     workers=50,
     sleep_threshold=20
@@ -54,20 +51,22 @@ bot = Client(
 # ---------------- MAIN ---------------- #
 
 async def main():
+    started = False
     try:
         await bot.start()
-        bot_info = await bot.get_me()
-        LOGGER.info(f"<--- @{bot_info.username} Started Successfully --->")
+        started = True
+        me = await bot.get_me()
+        LOGGER.info(f"<--- @{me.username} Started Successfully --->")
         await idle()
-    except Exception as e:
+    except Exception:
         LOGGER.exception("Bot crashed due to error:")
-        raise e
+        raise
     finally:
-        await bot.stop()
-        LOGGER.info("<--- Bot Stopped --->")
+        if started:
+            await bot.stop()
+            LOGGER.info("<--- Bot Stopped --->")
 
 # ---------------- RUN ---------------- #
 
 if __name__ == "__main__":
     asyncio.run(main())
-
