@@ -9,25 +9,13 @@ import threading
 from logging.handlers import RotatingFileHandler
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-from pyrogram import Client, filters
+from pyrogram import Client
 from pyromod import listen
 import tgcrypto
 
 from config import Config
 
-# =================================================
-# PYROGRAM v1 → v2 COMPATIBILITY PATCH
-# =================================================
-
-if not hasattr(filters, "edited"):
-    filters.edited = filters.create(lambda *_: False)
-
-if not hasattr(filters, "forwarded"):
-    filters.forwarded = filters.create(lambda *_: False)
-
-# =================================================
-# LOGGING
-# =================================================
+# ================= LOGGING =================
 
 LOGGER = logging.getLogger(__name__)
 
@@ -41,54 +29,29 @@ logging.basicConfig(
     ],
 )
 
-# =================================================
-# CONFIG
-# =================================================
+# ================= CONFIG =================
 
-AUTH_USERS = [
-    int(chat) for chat in Config.AUTH_USERS.split(",") if chat.strip()
-]
-
-PREFIXES = ["/", "~", "?", "!"]
-prefixes = PREFIXES  # backward compatibility
+AUTH_USERS = [int(x) for x in Config.AUTH_USERS.split(",") if x.strip()]
+PREFIXES = ["/", "!", ".", "?"]
 
 PLUGINS = dict(root="plugins")
 
-# =================================================
-# BOT CLIENT
-# =================================================
+# ================= BOT =================
 
 bot = Client(
     name="mrwolf_bot",
-    bot_token=os.environ["BOT_TOKEN"],
     api_id=int(os.environ["API_ID"]),
     api_hash=os.environ["API_HASH"],
+    bot_token=os.environ["BOT_TOKEN"],
     plugins=PLUGINS,
     workers=50,
-    sleep_threshold=20
+    sleep_threshold=20,
 )
 
-# =================================================
-# DEBUG HANDLER (TEMPORARY)
-# =================================================
+# attach pyromod correctly
+listen(bot)
 
-@bot.on_message(filters.all)
-async def debug_all(_, m):
-    try:
-        print(
-            "RECEIVED:",
-            m.text,
-            "FROM:",
-            m.from_user.id if m.from_user else None,
-            "CHAT:",
-            m.chat.id
-        )
-    except Exception as e:
-        print("DEBUG ERROR:", e)
-
-# =================================================
-# DUMMY WEB SERVER (RENDER FREE)
-# =================================================
+# ================= RENDER HEALTH SERVER =================
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -106,29 +69,19 @@ def run_web():
     LOGGER.info(f"Health server running on port {port}")
     server.serve_forever()
 
-# =================================================
-# MAIN
-# =================================================
+# ================= MAIN =================
 
 async def main():
-    try:
-        threading.Thread(target=run_web, daemon=True).start()
+    threading.Thread(target=run_web, daemon=True).start()
 
-        await bot.start()
-        me = await bot.get_me()
-        LOGGER.info(f"<--- @{me.username} Started Successfully --->")
+    await bot.start()
+    me = await bot.get_me()
+    LOGGER.info(f"<--- @{me.username} Started Successfully --->")
 
-        while True:
-            await asyncio.sleep(60)
+    # keep alive forever
+    await asyncio.Event().wait()
 
-    except asyncio.CancelledError:
-        LOGGER.warning("Cancelled by Render")
-    except Exception:
-        LOGGER.exception("Bot crashed")
-
-# =================================================
-# RUN
-# =================================================
+# ================= RUN =================
 
 if __name__ == "__main__":
     asyncio.run(main())
