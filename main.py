@@ -14,16 +14,17 @@ import tgcrypto
 from config import Config
 
 # -------------------------------------------------
-# PYROGRAM v1 ➜ v2 COMPATIBILITY PATCH (IMPORTANT)
+# PYROGRAM COMPATIBILITY PATCH (CRITICAL)
 # -------------------------------------------------
 
-# Old repos use filters.edited (removed in v2)
+# Some old repos use filters.edited (removed in newer Pyrogram)
+# Create a safe dummy filter so plugins don't crash
 if not hasattr(filters, "edited"):
-    filters.edited = filters.edited_message
+    filters.edited = filters.create(lambda *_: False)
 
-# Old repos may use filters.forwarded
+# Some repos also use filters.forwarded
 if not hasattr(filters, "forwarded"):
-    filters.forwarded = filters.forwarded_message
+    filters.forwarded = filters.create(lambda *_: False)
 
 # -------------------------------------------------
 # LOGGING
@@ -59,7 +60,7 @@ PLUGINS = dict(root="plugins")
 # -------------------------------------------------
 
 bot = Client(
-    name="mrwolf_bot",                 # no spaces, avoids old sessions
+    name="mrwolf_bot",
     bot_token=os.environ["BOT_TOKEN"],
     api_id=int(os.environ["API_ID"]),
     api_hash=os.environ["API_HASH"],
