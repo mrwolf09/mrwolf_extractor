@@ -5,7 +5,9 @@
 import os
 import asyncio
 import logging
+import threading
 from logging.handlers import RotatingFileHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from pyrogram import Client, idle, filters
 from pyromod import listen
@@ -14,15 +16,12 @@ import tgcrypto
 from config import Config
 
 # -------------------------------------------------
-# PYROGRAM COMPATIBILITY PATCH (CRITICAL)
+# PYROGRAM COMPATIBILITY PATCH
 # -------------------------------------------------
 
-# Some old repos use filters.edited (removed in newer Pyrogram)
-# Create a safe dummy filter so plugins don't crash
 if not hasattr(filters, "edited"):
     filters.edited = filters.create(lambda *_: False)
 
-# Some repos also use filters.forwarded
 if not hasattr(filters, "forwarded"):
     filters.forwarded = filters.create(lambda *_: False)
 
@@ -51,7 +50,7 @@ AUTH_USERS = [
 ]
 
 PREFIXES = ["/", "~", "?", "!"]
-prefixes = PREFIXES  # backward compatibility for plugins
+prefixes = PREFIXES  # backward compatibility
 
 PLUGINS = dict(root="plugins")
 
@@ -70,12 +69,31 @@ bot = Client(
 )
 
 # -------------------------------------------------
+# DUMMY WEB SERVER (RENDER FREE FIX)
+# -------------------------------------------------
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    LOGGER.info(f"Health server running on port {port}")
+    server.serve_forever()
+
+# -------------------------------------------------
 # MAIN
 # -------------------------------------------------
 
 async def main():
     started = False
     try:
+        # Start dummy web server in background
+        threading.Thread(target=run_web, daemon=True).start()
+
         await bot.start()
         started = True
         me = await bot.get_me()
