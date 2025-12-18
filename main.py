@@ -9,25 +9,27 @@ import threading
 from logging.handlers import RotatingFileHandler
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-from pyrogram import Client, idle, filters
+from pyrogram import Client, filters
 from pyromod import listen
 import tgcrypto
 
 from config import Config
 
-# -------------------------------------------------
-# PYROGRAM COMPATIBILITY PATCH
-# -------------------------------------------------
+# =================================================
+# PYROGRAM v1 → v2 COMPATIBILITY PATCH
+# =================================================
 
+# Old repos use filters.edited / filters.forwarded
+# Create safe dummy filters so plugins never crash
 if not hasattr(filters, "edited"):
     filters.edited = filters.create(lambda *_: False)
 
 if not hasattr(filters, "forwarded"):
     filters.forwarded = filters.create(lambda *_: False)
 
-# -------------------------------------------------
+# =================================================
 # LOGGING
-# -------------------------------------------------
+# =================================================
 
 LOGGER = logging.getLogger(__name__)
 
@@ -41,25 +43,25 @@ logging.basicConfig(
     ],
 )
 
-# -------------------------------------------------
+# =================================================
 # CONFIG
-# -------------------------------------------------
+# =================================================
 
 AUTH_USERS = [
     int(chat) for chat in Config.AUTH_USERS.split(",") if chat.strip()
 ]
 
 PREFIXES = ["/", "~", "?", "!"]
-prefixes = PREFIXES  # backward compatibility
+prefixes = PREFIXES  # backward compatibility for plugins
 
 PLUGINS = dict(root="plugins")
 
-# -------------------------------------------------
+# =================================================
 # BOT CLIENT
-# -------------------------------------------------
+# =================================================
 
 bot = Client(
-    name="mrwolf_bot",
+    name="mrwolf_bot",               # no spaces, avoids old sessions
     bot_token=os.environ["BOT_TOKEN"],
     api_id=int(os.environ["API_ID"]),
     api_hash=os.environ["API_HASH"],
@@ -68,9 +70,9 @@ bot = Client(
     sleep_threshold=20
 )
 
-# -------------------------------------------------
+# =================================================
 # DUMMY WEB SERVER (RENDER FREE FIX)
-# -------------------------------------------------
+# =================================================
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -84,32 +86,32 @@ def run_web():
     LOGGER.info(f"Health server running on port {port}")
     server.serve_forever()
 
-# -------------------------------------------------
+# =================================================
 # MAIN
-# -------------------------------------------------
+# =================================================
 
 async def main():
-    started = False
     try:
-        # Start dummy web server in background
+        # Start dummy HTTP server for Render
         threading.Thread(target=run_web, daemon=True).start()
 
+        # Start Telegram bot
         await bot.start()
-        started = True
         me = await bot.get_me()
         LOGGER.info(f"<--- @{me.username} Started Successfully --->")
-        await idle()
-    except Exception:
-        LOGGER.exception("Bot crashed due to error:")
-        raise
-    finally:
-        if started:
-            await bot.stop()
-            LOGGER.info("<--- Bot Stopped --->")
 
-# -------------------------------------------------
+        # Keep process alive forever (Render-friendly)
+        while True:
+            await asyncio.sleep(60)
+
+    except asyncio.CancelledError:
+        LOGGER.warning("Process cancelled (Render shutdown)")
+    except Exception:
+        LOGGER.exception("Bot crashed due to error")
+
+# =================================================
 # RUN
-# -------------------------------------------------
+# =================================================
 
 if __name__ == "__main__":
     asyncio.run(main())
