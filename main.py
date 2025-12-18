@@ -51,13 +51,14 @@ prefixes = ["/", "~", "?", "!"]
 plugins = dict(root="plugins")
 if __name__ == "__main__" :
     bot = Client(
-        "StarkBot",
-        bot_token=os.environ.get("BOT_TOKEN"),
-        api_id=int(os.environ.get("API_ID")),
-        api_hash=os.environ.get("API_HASH"),
-        sleep_threshold=20,
-        plugins=plugins,
-        workers = 50
+    name="StarkBot",
+    bot_token=os.environ.get("BOT_TOKEN"),
+    api_id=int(os.environ.get("API_ID")),
+    api_hash=os.environ.get("API_HASH"),
+    session_string=os.environ.get("SESSION_STRING"),
+    sleep_threshold=20,
+    plugins=plugins,
+    workers=50
     )
     
     async def main():
@@ -68,3 +69,4 @@ if __name__ == "__main__" :
     
     asyncio.get_event_loop().run_until_complete(main())
     LOGGER.info(f"<---Bot Stopped-->")
+
