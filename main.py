@@ -71,6 +71,102 @@ bot = Client(
 )
 
 # =================================================
+# DEBUG HANDLER (IMPORTANT)
+# =================================================
+
+@bot.on_message(filters.all)
+async def __debug_all_messages(_, m):
+    try:
+        print(
+            "RECEIVED UPDATE:",
+            m.text,
+            "FROM",
+            m.from_user.id if m.from_user else None,
+            "CHAT",
+            m.chat.id
+        )
+    except Exception as e:
+        print("DEBUG ERROR:", e)
+
+# =================================================
+# DUMMY WEB SERVER (RENDER FREE FIX)
+# =================================================
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    LOGGER.info(f"Health server running on port {port}")
+    server.serve_forever()
+
+# =================================================
+# MAIN
+# =================================================
+
+async def main():
+    try:
+        # Start dummy HTTP server for Render
+        threading.Thread(target=run_web, daemon=True).start()
+
+        # Start Telegram bot
+        await bot.start()
+        me = await bot.get_me()
+        LOGGER.info(f"<--- @{me.username} Started Successfully --->")
+
+        # Keep process alive forever (Render-friendly)
+        while True:
+            await asyncio.sleep(60)
+
+    except asyncio.CancelledError:
+        LOGGER.warning("Process cancelled (Render shutdown)")
+    except Exception:
+        LOGGER.exception("Bot crashed due to error")
+
+# =================================================
+# RUN
+# =================================================
+
+if __name__ == "__main__":
+    asyncio.run(main())    ],
+)
+
+# =================================================
+# CONFIG
+# =================================================
+
+AUTH_USERS = [
+    int(chat) for chat in Config.AUTH_USERS.split(",") if chat.strip()
+]
+
+PREFIXES = ["/", "~", "?", "!"]
+prefixes = PREFIXES  # backward compatibility for plugins
+
+PLUGINS = dict(root="plugins")
+
+# =================================================
+# BOT CLIENT
+# =================================================
+
+bot = Client(
+    name="mrwolf_bot",               # no spaces, avoids old sessions
+    bot_token=os.environ["BOT_TOKEN"],
+    api_id=int(os.environ["API_ID"]),
+    api_hash=os.environ["API_HASH"],
+    plugins=PLUGINS,
+    workers=50,
+    sleep_threshold=20
+)
+
+# =================================================
 # DUMMY WEB SERVER (RENDER FREE FIX)
 # =================================================
 
@@ -115,3 +211,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
