@@ -10,7 +10,6 @@ from logging.handlers import RotatingFileHandler
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from pyrogram import Client
-from pyromod import listen
 import tgcrypto
 
 from config import Config
@@ -32,7 +31,7 @@ logging.basicConfig(
 # ================= CONFIG =================
 
 AUTH_USERS = [int(x) for x in Config.AUTH_USERS.split(",") if x.strip()]
-PREFIXES = ["/", "!", ".", "?"]
+prefixes = ["/", "!", ".", "?"]
 
 PLUGINS = dict(root="plugins")
 
@@ -47,9 +46,6 @@ bot = Client(
     workers=50,
     sleep_threshold=20,
 )
-
-# attach pyromod correctly
-listen(bot)
 
 # ================= RENDER HEALTH SERVER =================
 
